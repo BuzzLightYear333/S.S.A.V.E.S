@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SSSAVES_Exchange {
+    mapping(address => uint256) public balances;
+    uint256 public appreciationRate = 105; // 5% appreciation per transaction
+    uint256 public reinvestmentRate = 10;  // 10% reinvested into system
+
+    event Deposit(address indexed user, uint256 amount);
+    event Exchange(address indexed sender, address indexed recipient, uint256 amount);
+    event Withdraw(address indexed user, uint256 amount);
+
+    constructor() {}
+
+    function deposit() public payable {
+        require(msg.value > 0, "Deposit must be greater than zero");
+        balances[msg.sender] += msg.value;
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    function exchange(address recipient, uint256 amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+
+        uint256 appreciatedValue = (amount * appreciationRate) / 100;
+        uint256 reinvestedAmount = (appreciatedValue * reinvestmentRate) / 100;
+        uint256 finalTransfer = appreciatedValue - reinvestedAmount;
+
+        balances[msg.sender] -= amount;
+        balances[recipient] += finalTransfer;
+        balances[address(this)] += reinvestedAmount;
+
+        emit Exchange(msg.sender, recipient, finalTransfer);
+    }
+
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        payable(msg.sender).transfer(amount);
+        balances[msg.sender] -= amount;
+        emit Withdraw(msg.sender, amount);
+    }
+
+    function getBalance() public view returns (uint256) {
+        return balances[msg.sender];
+    }
+}
